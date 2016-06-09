@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*$py.class
+sssh/*
+!sssh/__init__.py
+.idea
