@@ -20,7 +20,7 @@ def key_error():
     """
     Creates an error log that goes to the same group
     """
-    return {}['boom']
+    return {}['oh no']
 
 
 @app.route('/errors/group')
@@ -31,8 +31,15 @@ def assertion_error():
     import imp
     module_name = ''.join(random.sample(string.letters, 10))
     m = imp.new_module(module_name)
-    exec _nopecode in m.__dict__
+    exec _nope_code in m.__dict__
     m.nope()
+
+
+_nope_code = \
+"""
+def nope():
+    raise AssertionError('Nope')
+"""
 
 
 @app.route('/release/')
@@ -51,7 +58,7 @@ def release():
     os.popen('git commit -m "add another elephant"').read()
     os.popen('git push').read()
 
-    url = _M.intake_base_url + 'api/v1/organizations/' + _M.organization_id + '/apps/' + _M.app_id + '/releases/'
+    url = _M.intake_base_url + '/api/v1/organizations/' + _M.organization_id + '/apps/' + _M.app_id + '/releases/'
     rev = os.popen('git log -n 1 --pretty=format:%H').read()
     branch = 'master'  # os.popen('git rev-parse --abbrev-ref HEAD').read()
 
@@ -64,16 +71,10 @@ def release():
     return 'SHiP MaSTer'
 
 
-_nopecode = \
-"""
-def nope():
-    raise AssertionError('Nope')
-"""
-
 _M = None
 
 
-def instrument():
+def _instrument():
     """Shall someone init _M first"""
     return Opbeat(
         app,
@@ -82,11 +83,24 @@ def instrument():
         secret_token=_M.secret_token)
 
 
+def run_flask(env):
+    """
+    Order of operations in here is relevant.
+    Don't do this at home. NEVER.
+    """
+    global _M
+
+    _M = __import__('sssh.' + env, fromlist=[''])  # lol
+
+    app.config['OPBEAT'] = {'SERVERS': [_M.intake_base_url]}
+
+    _instrument()
+
+    app.run()
+
+
 if __name__ == '__main__':
     args = sys.argv[1:]
     opts, _ = getopt.getopt(args, '-e:')
     env_str = dict(opts).get('-e', 'local')
-    global _M
-    _M = __import__('sssh.' + env_str, fromlist=[''])  # lol
-    instrument()
-    app.run()
+    run_flask(env_str)
