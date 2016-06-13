@@ -15,14 +15,6 @@ def main():
     return 'So far so good...'
 
 
-@app.route('/errors/log')
-def key_error():
-    """
-    Creates an error log that goes to the same group
-    """
-    return {}['oh no']
-
-
 @app.route('/errors/group')
 def assertion_error():
     """
@@ -42,8 +34,25 @@ def nope():
 """
 
 
+@app.route('/errors/log')
+def key_error():
+    """
+    Creates an error log that goes to the same group
+    """
+    return {}['invalid lines?']
+
+
 @app.route('/release/')
 def release():
+    return _release(push=True)
+
+
+@app.route('/bad-release/')
+def bad_release():
+    return _release(push=False)
+
+
+def _release(push=True):
     os.chdir(os.path.dirname(__file__))
 
     f = os.path.join(os.path.dirname(__file__), 'elephant.txt')
@@ -56,7 +65,8 @@ def release():
 
     os.popen('git add elephant.txt').read()
     os.popen('git commit -m "add another elephant"').read()
-    os.popen('git push').read()
+    if push:
+        os.popen('git push').read()
 
     url = _M.intake_base_url + '/api/v1/organizations/' + _M.organization_id + '/apps/' + _M.app_id + '/releases/'
     rev = os.popen('git log -n 1 --pretty=format:%H').read()
@@ -96,8 +106,7 @@ def run_flask(env):
 
     _instrument()
 
-    app.run()
-
+    app.run(threaded=True)
 
 if __name__ == '__main__':
     args = sys.argv[1:]
