@@ -34,14 +34,6 @@ def nope():
 """
 
 
-@app.route('/errors/log')
-def key_error():
-    """
-    Creates an error log that goes to the same group
-    """
-    return {}['invalid lines?']
-
-
 @app.route('/release/')
 def release():
     return _release(push=True)
@@ -107,6 +99,45 @@ def run_flask(env):
     _instrument()
 
     app.run(threaded=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@app.route('/errors/log')
+def key_error():
+    """
+    Creates an error log that goes to the same group
+    """
+    return {}['invalid lines?']
+
 
 if __name__ == '__main__':
     args = sys.argv[1:]
