@@ -5,6 +5,7 @@ import sys, getopt
 
 import requests
 from flask import Flask
+from opbeat import Client
 from opbeat.contrib.flask import Opbeat
 
 app = Flask(__name__)
@@ -36,27 +37,41 @@ def nope():
 
 @app.route('/release/')
 def release():
+    os.chdir(os.path.dirname(__file__))
+    f = os.path.join(os.path.dirname(__file__), 'elephant.txt')
+
+    return _release(push=True, f=f)
+
+
+@app.route('/ship/')
+def ship():
+    os.chdir(os.path.dirname(__file__))
     return _release(push=True)
 
 
 @app.route('/bad-release/')
 def bad_release():
-    return _release(push=False)
-
-
-def _release(push=True):
     os.chdir(os.path.dirname(__file__))
-
     f = os.path.join(os.path.dirname(__file__), 'elephant.txt')
 
-    with open(f, "r") as elephant_counter:
-        next_elephant = str(elephant_counter.read().count('\n') - 4)
+    return _release(push=False, f=f)
 
-    with open(f, "a") as elephant_song:
-        elephant_song.write(next_elephant + ' elephants stood on the web of a spider...\n')
 
-    os.popen('git add elephant.txt').read()
-    os.popen('git commit -m "add another elephant"').read()
+def _release(push=True, f=None):
+    if f:
+        with open(f, "r") as elephant_counter:
+            next_elephant = str(elephant_counter.read().count('\n') - 4)
+
+        with open(f, "a") as elephant_song:
+            elephant_song.write(next_elephant + ' elephants stood on the web of a spider...\n')
+
+        os.popen('git add elephant.txt').read()
+        os.popen('git commit -m "add another elephant"').read()
+
+    else:
+        os.popen('git add .').read()
+        os.popen('git commit -m "just commit"').read()
+
     if push:
         os.popen('git push').read()
 
@@ -70,22 +85,13 @@ def _release(push=True):
     r = requests.post(url, data=d, headers=h)
     assert r.status_code < 300
 
-    return 'SHiP MaSTer'
+    return 'SHiP MaSTer ' + url
 
 
 _M = None
 
 
-def _instrument():
-    """Shall someone init _M first"""
-    return Opbeat(
-        app,
-        organization_id=_M.organization_id,
-        app_id=_M.app_id,
-        secret_token=_M.secret_token)
-
-
-def run_flask(env):
+def _instrument(env):
     """
     Order of operations in here is relevant.
     Don't do this at home. NEVER.
@@ -96,7 +102,15 @@ def run_flask(env):
 
     app.config['OPBEAT'] = {'SERVERS': [_M.intake_base_url]}
 
-    _instrument()
+    return Opbeat(
+        app,
+        organization_id=_M.organization_id,
+        app_id=_M.app_id,
+        secret_token=_M.secret_token)
+
+
+def run_flask(env):
+    _instrument(env)
 
     app.run(threaded=True)
 
