@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 import string
@@ -5,8 +6,10 @@ import sys, getopt
 
 import requests
 from flask import Flask
-from opbeat import Client
 from opbeat.contrib.flask import Opbeat
+from opbeat.handlers.logging import OpbeatHandler
+
+from helpers import zero_division_no_error, just_log_stuff, deep_zero_division_error
 
 app = Flask(__name__)
 
@@ -14,6 +17,40 @@ app = Flask(__name__)
 @app.route('/')
 def main():
     return 'So far so good...'
+
+
+@app.route('/errors/log')
+def key_error():
+    """
+    Creates an error log that goes to the same group
+    """
+    return {}['invalid lines?']
+
+
+@app.route('/errors/deep')
+def deep_error():
+    """
+    Creates an error i
+    """
+    return deep_zero_division_error()
+
+
+@app.route('/log/info')
+def log_info():
+    """
+    Logs a message
+    """
+    just_log_stuff(app)
+    return 'Did it work?...'
+
+
+@app.route('/log/error')
+def log_error():
+    """
+    Captures an exception and sends a log to opbeat
+    """
+    zero_division_no_error(app)
+    return 'Did it work this time?...'
 
 
 @app.route('/errors/group')
@@ -106,51 +143,18 @@ def _instrument(env):
         app,
         organization_id=_M.organization_id,
         app_id=_M.app_id,
-        secret_token=_M.secret_token)
+        secret_token=_M.secret_token,
+        logging=True)
 
 
 def run_flask(env):
-    _instrument(env)
+    opbeat = _instrument(env)
+
+    handler = OpbeatHandler(client=opbeat.client)
+    handler.setLevel(logging.WARN)
+    app.logger.addHandler(handler)
 
     app.run(threaded=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@app.route('/errors/log')
-def key_error():
-    """
-    Creates an error log that goes to the same group
-    """
-    return {}['invalid lines?']
 
 
 if __name__ == '__main__':
