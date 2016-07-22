@@ -154,7 +154,7 @@ def run_flask(env):
     handler.setLevel(logging.WARN)
     app.logger.addHandler(handler)
 
-    app.run(threaded=True)
+    app.run(threaded=True, port=5000)
 
 
 if __name__ == '__main__':
