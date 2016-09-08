@@ -4,7 +4,10 @@ import random
 import string
 import sys, getopt
 
+import opbeat
 import requests
+import time
+
 from flask import Flask
 from opbeat.contrib.flask import Opbeat
 from opbeat.handlers.logging import OpbeatHandler
@@ -78,6 +81,18 @@ def release():
     f = os.path.join(os.path.dirname(__file__), 'elephant.txt')
 
     return _release(push=True, f=f)
+
+
+@app.route('/perf/')
+def perf():
+    _time_it()
+    return 'slow hand'
+
+
+@opbeat.trace()
+def _time_it():
+    zzz = random.randint(100, 3000)
+    time.sleep(zzz / 1000.0)  # seconds, man
 
 
 @app.route('/ship/')
